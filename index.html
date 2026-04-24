@@ -103,17 +103,17 @@
     
     <div class="menu-grid">
       <!-- 貸出ページへのリンク -->
-      <a href="https://shinro-makuso.github.io/ShinroLibralyApp/lending.html" class="menu-item btn-lending">
+      <a href="https://shinro-makuso.github.io/ShinroLibraryApp/lending.html" class="menu-item btn-lending">
         貸 出
       </a>
       
       <!-- 返却ページへのリンク -->
-      <a href="https://shinro-makuso.github.io/ShinroLibralyApp/returning.html" class="menu-item btn-returning">
+      <a href="https://shinro-makuso.github.io/ShinroLibraryApp/returning.html" class="menu-item btn-returning">
         返 却
       </a>
 
       <!-- 蔵書検索ページへのリンク -->
-      <a href="https://shinro-makuso.github.io/ShinroLibralyApp/searching.html" class="menu-item btn-searching">
+      <a href="https://shinro-makuso.github.io/ShinroLibraryApp/searching.html" class="menu-item btn-searching">
         蔵 書 検 索
       </a>
       
@@ -129,7 +129,7 @@
           event.preventDefault();
 
           // 1. パスワードを入力してもらう
-          const password = prompt("管理用パスワードを入力してください：");
+          const password = prompt("パスワードを入力してください：");
 
           // 2. キャンセルされた場合は何もしない
           if (password === null || password === "") {
@@ -137,7 +137,7 @@
           }
 
           // 3. 入力されたパスワードをファイル名としてURLを作成
-          const targetUrl = `https://shinro-makuso.github.io/ShinroLibralyApp/${password}.html`;
+          const targetUrl = `https://shinro-makuso.github.io/ShinroLibraryApp/${password}.html`;
 
           // 4. そのURLへジャンプ
           window.location.href = targetUrl;
