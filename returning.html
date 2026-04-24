@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>進路図書貸出アプリ【返却】</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+    
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      line-height: 1.6;
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    
+    .header-info {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    h1 {
+      color: #0056b3;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 30px;
+      font-size: 24px;
+      border-bottom: 3px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px solid #eee;
+      border-radius: 8px;
+    }
+    
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 15px;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.2s;
+    }
+    
+    .btn-blue { background-color: #4e87cd; }
+    .btn-green { background-color: #1bc481; }
+    .btn-gray { background-color: #969a9e; }
+    .btn-red { background-color: #FF6B6B; }
+    
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .scanner-box {
+      width: 100%;
+      height: 250px;
+      background: #000;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      display: none;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .scanner-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(100%) contrast(150%);
+    }
+    
+    #message {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      white-space: pre-wrap;
+    }
+    
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    
+    .book-card {
+      background: #f8f9fa;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 8px;
+      position: relative;
+    }
+    
+    .remove-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+    
+    .info-line {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .footer-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    /* 複数見つかった時の警告バッジ */
+    .multiple-badge {
+      display: inline-block;
+      background: #ffc107;
+      color: #000;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-info">千葉県立幕張総合高等学校 進路指導部</div>
+    <h1>進路図書貸出アプリ<br>【返却ページ】</h1>
+
+    <div class="section">
+      <label>返却図書の確認</label>
+      <button class="btn-blue" id="scan-btn" onclick="toggleScanner()">バーコードをスキャン</button>
+      <div id="scanner-container" class="scanner-box"></div>
+      
+      <input type="text" id="book-id" placeholder="蔵書IDをスキャンまたは入力してください" onkeypress="if(event.key==='Enter') handleBookInput(this.value)">
+      <button class="btn-gray" id="search-btn" onclick="handleBookInput(document.getElementById('book-id').value)">貸出記録検索</button>
+    </div>
+
+    <div id="return-list-section" style="display:none;">
+      <label>返却リスト</label>
+      <div id="book-list"></div>
+      <button id="submit-btn" class="btn-green" style="margin-top:20px;" onclick="submitReturn()">返却処理を実行</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="footer-btns">
+      <button class="btn-gray" id="reset-button" onclick="resetForm()">リセット</button>
+      <button class="btn-red" id="close-button" onclick="closeApp()">閉じる</button>
+    </div>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwSFgZGT1fpRCs9n8gbJ7ERFq27iJz-aZJyTNVOgNkgMcMVBJBLxlLp-TTgUcMc7baLCg/exec";
+    let returnQueue = [];
+    let isScanning = false;
+
+    async function callGas(action, data) {
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action, ...data })
+        });
+        return await response.json();
+      } catch (e) {
+        return { success: false, message: "ネットワークエラー" };
+      }
+    }
+
+    function toggleScanner() {
+      const box = document.getElementById('scanner-container');
+      const btn = document.getElementById('scan-btn');
+      
+      if (isScanning) {
+        Quagga.stop();
+        box.style.display = 'none';
+        btn.innerText = "バーコードをスキャン";
+        isScanning = false;
+      } else {
+        box.style.display = 'block';
+        btn.innerText = "スキャン停止";
+        isScanning = true;
+        initQuagga();
+      }
+    }
+
+    function initQuagga() {
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#scanner-container'),
+          constraints: { width: 1280, height: 720, facingMode: "environment" }
+        },
+        decoder: { 
+          readers: ["codabar_reader", "code_128_reader", "ean_reader"] 
+        },
+        locate: true
+      }, (err) => {
+        if (err) {
+          alert("カメラ起動エラー: " + err);
+          toggleScanner();
+          return;
+        }
+        Quagga.start();
+      });
+
+      Quagga.onDetected((data) => {
+        const code = data.codeResult.code;
+        if (code) {
+          Quagga.stop();
+          document.getElementById('book-id').value = code;
+          handleBookInput(code);
+          const box = document.getElementById('scanner-container');
+          const btn = document.getElementById('scan-btn');
+          box.style.display = 'none';
+          btn.innerText = "バーコードをスキャン";
+          isScanning = false;
+        }
+      });
+    }
+
+    /**
+     * 蔵書ID入力を受け取り、サーバーからの配列データを処理
+     */
+    async function handleBookInput(bookId) {
+      if (!bookId) return;
+      // 数値以外のプレフィックスなどを除去
+      bookId = bookId.replace(/^[a-zA-Z]+|[a-zA-Z]+$/g, '');
+      document.getElementById('book-id').value = bookId;
+
+      setMessage("貸出記録を確認中...", "");
+      const res = await callGas('getUnreturnedBooksByBookId', { bookId: bookId });
+      
+      if (res.success && res.data) {
+        // res.data は配列として返ってくる
+        const newRecords = Array.isArray(res.data) ? res.data : [res.data];
+        let addedCount = 0;
+        let hasMultiple = false; // 重複があるかどうかのフラグ
+
+        newRecords.forEach(record => {
+          // すでにキューにあるかチェック（IDと利用者の組み合わせで判断）
+          const isExist = returnQueue.some(q => q.bookId === bookId && q.userName === record.userName);
+          
+          if (!isExist) {
+            returnQueue.push({
+              bookId: bookId,
+              bookTitle: record.bookTitle,
+              userName: record.userName || "不明な利用者",
+              dueDate: record.dueDate,
+              isMultiple: newRecords.length > 1 // サーバー側で複数見つかった場合にフラグを立てる
+            });
+            addedCount++;
+          }
+          
+          // 2件以上のデータがある場合
+          if (newRecords.length > 1) {
+            hasMultiple = true;
+          }
+        });
+
+        if (addedCount > 0) {
+          updateListUI();
+          
+          // メッセージの組み立て
+          let msg = `${addedCount}件の記録をリストに追加しました。`;
+          if (hasMultiple) {
+            msg += "\n※蔵書IDが重複している古い未返却記録が見つかりました。\n※古い記録も含めて返却処理を実行してください。";
+          }
+          
+          setMessage(msg, "success");
+          document.getElementById('book-id').value = "";
+          autoScroll('submit-btn');
+        } else {
+          setMessage("この記録は既にリストに含まれています", "error");
+        }
+      } else {
+        setMessage(res.message || "貸出中の記録が見つかりません", "error");
+      }
+    }
+
+    function updateListUI() {
+      const listDiv = document.getElementById('book-list');
+      const section = document.getElementById('return-list-section');
+      if (returnQueue.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+      listDiv.innerHTML = returnQueue.map((b, index) => `
+        <div class="book-card">
+          ${b.isMultiple ? '<span class="multiple-badge">⚠️ 重複</span>' : ''}
+          <div><strong>📖 ${b.bookTitle}</strong></div>
+          <div class="info-line">蔵書ID: ${b.bookId}</div>
+          <div class="info-line">利用者: ${b.userName} さん</div>
+          <div class="info-line">返却期限: ${b.dueDate}</div>
+          <button class="remove-btn" onclick="removeFromQueue(${index})">取消</button>
+        </div>
+      `).join('');
+    }
+
+    function removeFromQueue(index) {
+      returnQueue.splice(index, 1);
+      updateListUI();
+    }
+
+    async function submitReturn() {
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      setMessage("返却処理を実行中...", "");
+      
+      // 同じ蔵書IDが複数あっても、そのまま配列として送る
+      // GAS側の processBulkReturn がループで1つずつ「未返却」を「返却済」に変えるため、
+      // IDが2つ入っていれば2つの記録が処理される
+      const bookIds = returnQueue.map(b => b.bookId);
+      
+      const res = await callGas('processBulkReturn', { bookIds: bookIds });
+      if (res.success) {
+        setMessage(res.message, "success");
+        // 完了後のUIロック
+        document.getElementById('return-list-section').style.opacity = "0.6";
+        document.getElementById('scan-btn').disabled = true;
+        document.getElementById('search-btn').disabled = true;
+        document.querySelectorAll('.remove-btn').forEach(x => x.disabled = true);
+        btn.style.display = "none";
+        autoScroll('close-button');
+      } else {
+        setMessage("エラー: " + res.message, "error");
+        btn.disabled = false;
+      }
+    }
+
+    function resetForm() { location.reload(); }
+
+    function setMessage(text, type) {
+      const msgDiv = document.getElementById('message');
+      msgDiv.innerText = text;
+      msgDiv.className = type;
+    }
+
+    function autoScroll(id) {
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+
+    function closeApp() {
+      window.close();
+      setTimeout(() => {
+        if (!window.closed) {
+          setMessage("タブを閉じてください。", "error");
+          if (window.history.length > 1) window.history.back();
+        }
+      }, 500);
+    }
+  </script>
+</body>
+</html>
+
+

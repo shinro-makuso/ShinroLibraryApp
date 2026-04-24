@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>進路図書貸出アプリ【メニュー】</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+    
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      font-size: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .header-info {
+      font-size: 16px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    
+    h1 {
+      color: #0056b3;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 50px;
+      font-size: 32px;
+      border-bottom: 4px solid #eee;
+      padding-bottom: 15px;
+      width: 100%;
+    }
+    
+    .menu-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      width: 100%;
+    }
+    
+    .menu-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 30px;
+      border-radius: 15px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+      font-size: 32px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .menu-item:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .menu-item span {
+      font-size: 18px;
+      font-weight: normal;
+      margin-top: 12px;
+      opacity: 0.95;
+    }
+    
+    .btn-lending { background-color: #FF6B6B; }
+    .btn-returning { background-color: #4e87cd; }
+    .btn-searching { background-color: #1bc481; }
+    .btn-register { background-color: #969a9e; }
+    
+    .footer {
+      margin-top: auto;
+      padding-top: 40px;
+      font-size: 14px;
+      color: #999;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-info">千葉県立幕張総合高等学校 進路指導部</div>
+    <h1>進路図書貸出アプリ</h1>
+    
+    <div class="menu-grid">
+      <!-- 貸出ページへのリンク -->
+      <a href="https://shinro-makuso.github.io/ShinroLibralyApp/lending.html" class="menu-item btn-lending">
+        貸 出
+      </a>
+      
+      <!-- 返却ページへのリンク -->
+      <a href="https://shinro-makuso.github.io/ShinroLibralyApp/returning.html" class="menu-item btn-returning">
+        返 却
+      </a>
+
+      <!-- 蔵書検索ページへのリンク -->
+      <a href="https://shinro-makuso.github.io/ShinroLibralyApp/searching.html" class="menu-item btn-searching">
+        蔵 書 検 索
+      </a>
+      
+      <!-- 蔵書登録ページへのリンク -->
+      <a href="#" class="menu-item btn-register" onclick="goToRegisterPage(event)">
+        蔵 書 登 録
+        <span>（管理者専用）</span>
+      </a>
+
+      <script>
+        function goToRegisterPage(event) {
+          // リンクのデフォルト動作（ページ遷移）を一旦止める
+          event.preventDefault();
+
+          // 1. パスワードを入力してもらう
+          const password = prompt("管理用パスワードを入力してください：");
+
+          // 2. キャンセルされた場合は何もしない
+          if (password === null || password === "") {
+            return;
+          }
+
+          // 3. 入力されたパスワードをファイル名としてURLを作成
+          const targetUrl = `https://shinro-makuso.github.io/ShinroLibralyApp/${password}.html`;
+
+          // 4. そのURLへジャンプ
+          window.location.href = targetUrl;
+        }
+      </script>
+      
+<div class="footer">
+      &copy; 2025 Makuhari Sogo High School
+    </div>
+  </div>
+</body>
+</html>
