@@ -404,8 +404,26 @@
       limitMsg.style.display = isFull ? 'block' : 'none';
     }
 
-    function removeBook(index) { scannedBooks.splice(index, 1); updateBookList(); checkReady(); setMessage("取り消しました", ""); }
-    function checkReady() { document.getElementById('submit-btn').disabled = !(scannedBooks.length > 0 && currentUser); }
+    function removeBook(index) { 
+      // 配列から対象の書籍を削除
+      scannedBooks.splice(index, 1); 
+      // 画面のリスト表示を更新
+      updateBookList(); 
+      // ボタンの活性・非活性状態をチェック
+      checkReady(); 
+      // メッセージの更新
+      setMessage("取り消しました", ""); 
+    }
+    
+    function checkReady() { 
+      const submitBtn = document.getElementById('submit-btn');
+      // 「ユーザーが決定している」かつ「貸出リストに1冊以上ある」場合のみ活性化（disabled = false）
+      if (currentUser && scannedBooks.length > 0) {
+        submitBtn.disabled = false;
+      } else {
+        submitBtn.disabled = true;
+      }
+    }
 
     async function submitLending() {
       if (!currentUser || scannedBooks.length === 0) return;
