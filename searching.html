@@ -109,12 +109,13 @@
         const res = await response.json();
 
         if (res.success) {
+          if (res.data.length > 0) {
+            showStatus('', ''); // 成功時（件数あり）のみメッセージを隠す
+          }
           displayResults(res.data);
-          showStatus('', ''); // メッセージを隠す
-          statusMsg.classList.add('hidden');
         } else {
           showStatus(res.message, 'error');
-        }
+        }        
       } catch (e) {
         showStatus('通信エラーが発生しました', 'error');
       } finally {
