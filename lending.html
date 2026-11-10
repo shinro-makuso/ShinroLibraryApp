@@ -425,12 +425,54 @@
       }
     }
 
-    async function submitLending() {
+    // 「貸出処理を実行」ボタンを押したときは、まず認証コードスキャンを起動する
+    function submitLending() {
       if (!currentUser || scannedBooks.length === 0) return;
-      
+      startAuthScanner();
+    }
+
+    // 認証コード（Code128）スキャンの起動
+    function startAuthScanner() {
+      if (isQuaggaRunning) stopBookScanner();
+      if (videoStream) stopUserScanner();
+
+      const container = document.getElementById('book-scanner-container');
+      container.style.display = 'block';
+      setMessage("認証コードをスキャンしてください", "");
+      autoScroll('book-scanner-container');
+
+      Quagga.init({
+        inputStream: { 
+          name: "Live", 
+          type: "LiveStream", 
+          target: container, 
+          constraints: { facingMode: "environment" } 
+        },
+        decoder: { 
+          readers: ["code_128_reader"] // 認証コード用にCode128を指定
+        }
+      }, (err) => {
+        if (err) { alert(err); return; }
+        Quagga.start();
+        isQuaggaRunning = true;
+      });
+
+      // 検出時のイベントを設定
+      Quagga.offDetected();
+      Quagga.onDetected((data) => {
+        const code = data.codeResult.code;
+        if (code) {
+          stopBookScanner();
+          executeVerifiedLending(code); // 読み取ったコードで検証・貸出実行
+        }
+      });
+    }
+
+    // 認証コードをサーバーに送り検証・貸出を実行する
+    async function executeVerifiedLending(authCode) {
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      setMessage("貸出処理を実行中...", "");
+      setMessage("貸出処理を認証中...", "");
 
       const bulkData = scannedBooks.map(b => ({ 
         bookId: b.bookId, 
@@ -442,23 +484,23 @@
         number: currentUser.number
       }));
 
-      const res = await callGas('processBulkLending', { bulkData });
+      // サーバーに authCode と bulkData を送信
+      const res = await callGas('verifyAndProcessLending', { authCode, bulkData });
 
       if (res.success) {
         setMessage(`${res.message}`, "success");
-        //scannedBooks = [];
-        //updateBookList();
         currentUser = null;
         document.getElementById('user-info-display').style.display = 'none';
         document.getElementById('book-info-display').style.display = 'none';
-        document.getElementById('scan-user-btn').disabled =true;
-        document.getElementById('search-user-btn').disabled =true;
-        document.getElementById('scan-book-btn').disabled =true;
-        document.getElementById('add-book-btn').disabled =true;
+        document.getElementById('scan-user-btn').disabled = true;
+        document.getElementById('search-user-btn').disabled = true;
+        document.getElementById('scan-book-btn').disabled = true;
+        document.getElementById('add-book-btn').disabled = true;
         document.getElementById('book-section').classList.add('disabled');
         document.getElementById('user-id').value = "";
       } else {
-        setMessage("エラー: " + res.message, "error");
+        // 認証失敗時などは「認証できません」メッセージを表示してボタンを再有効化
+        setMessage(res.message, "error");
         btn.disabled = false;
       }
     }
