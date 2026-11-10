@@ -194,7 +194,7 @@
     <div id="return-list-section" style="display:none;">
       <label>返却リスト</label>
       <div id="book-list"></div>
-      <button id="submit-btn" class="btn-green" style="margin-top:20px;" onclick="startAuthScanner()">返却処理を実行</button>
+      <button id="submit-btn" class="btn-green" style="margin-top:20px;" onclick="submitReturn()">返却処理を実行</button>
       
       <!-- 【追加】認証用スキャナーコンテナ（ボタンの下） -->
       <div id="auth-scanner-container" class="scanner-box" style="margin-top: 15px;"></div>
@@ -418,36 +418,28 @@
       });
     }
 
-    async function submitReturn() {
-      if (returnQueue.length === 0) {
-        setMessage("返却リストが空です。", "error");
-        return;
-      }
-
+    // 【追加】認証コードを判定して既存仕様の bookIds で返却実行
+    async function executeVerifiedReturn(authCode) {
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      setMessage("返却処理を実行中...", "");
+      setMessage("返却処理を認証中...", "");
       
-      // ★ここに到達した時点で returnQueue に残っているものだけを厳密に抽出する
+      // 既存仕様通りの bookIds 配列
       const bookIds = returnQueue.map(b => b.bookId);
       
-      // ※もし認証機能（verifyAndProcessReturn）と併用している場合は、
-      // 以下の callGas のアクション名を適宜合わせてください
-      const res = await callGas('processBulkReturn', { bookIds: bookIds });
+      const res = await callGas('verifyAndProcessReturn', { authCode: authCode, bookIds: bookIds });
       
       if (res.success) {
         setMessage(res.message, "success");
         // 完了後のUIロック
         document.getElementById('return-list-section').style.opacity = "0.6";
-        const scanBtn = document.getElementById('scan-btn');
-        const searchBtn = document.getElementById('search-btn');
-        if (scanBtn) scanBtn.disabled = true;
-        if (searchBtn) searchBtn.disabled = true;
+        document.getElementById('scan-btn').disabled = true;
+        document.getElementById('search-btn').disabled = true;
         document.querySelectorAll('.remove-btn').forEach(x => x.disabled = true);
         btn.style.display = "none";
         autoScroll('close-button');
       } else {
-        setMessage("エラー: " + res.message, "error");
+        setMessage(res.message, "error"); // 認証失敗時は「認証できません」を表示
         btn.disabled = false;
       }
     }
