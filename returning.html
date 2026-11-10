@@ -195,6 +195,9 @@
       <label>返却リスト</label>
       <div id="book-list"></div>
       <button id="submit-btn" class="btn-green" style="margin-top:20px;" onclick="submitReturn()">返却処理を実行</button>
+
+      <!-- 【追加】認証用スキャナーコンテナ（ボタンの下） -->
+      <div id="auth-scanner-container" class="scanner-box" style="margin-top: 15px;"></div>
     </div>
 
     <div id="message"></div>
@@ -359,17 +362,67 @@
       updateListUI();
     }
 
-    async function submitReturn() {
+    let isAuthScanning = false;
+
+    // 【変更】「返却処理を実行」を押したら認証スキャンを開始
+    function submitReturn() {
+      if (returnQueue.length === 0) return;
+      startAuthScanner();
+    }
+
+    // 【追加】認証コード（Code128）スキャンの起動
+    function startAuthScanner() {
+      if (isScanning) toggleScanner(); // 通常スキャンが動いていれば停止
+
+      const container = document.getElementById('auth-scanner-container');
+      container.style.display = 'block';
+      setMessage("【教職員認証】認証コード（Code128バーコード）をスキャンしてください", "");
+      autoScroll('auth-scanner-container');
+
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: container,
+          constraints: { width: 1280, height: 720, facingMode: "environment" }
+        },
+        decoder: { 
+          readers: ["code_128_reader"] // Code128を指定
+        },
+        locate: true
+      }, (err) => {
+        if (err) {
+          alert("カメラ起動エラー: " + err);
+          container.style.display = 'none';
+          return;
+        }
+        Quagga.start();
+        isAuthScanning = true;
+      });
+
+      Quagga.offDetected();
+      Quagga.onDetected((data) => {
+        const code = data.codeResult.code;
+        if (code) {
+          Quagga.stop();
+          isAuthScanning = false;
+          container.style.display = 'none';
+          executeVerifiedReturn(code); // 読み取ったコードで処理実行
+        }
+      });
+    }
+
+    // 【追加】認証コードを判定して既存仕様の bookIds で返却実行
+    async function executeVerifiedReturn(authCode) {
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      setMessage("返却処理を実行中...", "");
+      setMessage("認証および返却処理を実行中...", "");
       
-      // 同じ蔵書IDが複数あっても、そのまま配列として送る
-      // GAS側の processBulkReturn がループで1つずつ「未返却」を「返却済」に変えるため、
-      // IDが2つ入っていれば2つの記録が処理される
+      // 既存仕様通りの bookIds 配列
       const bookIds = returnQueue.map(b => b.bookId);
       
-      const res = await callGas('processBulkReturn', { bookIds: bookIds });
+      const res = await callGas('verifyAndProcessReturn', { authCode: authCode, bookIds: bookIds });
+      
       if (res.success) {
         setMessage(res.message, "success");
         // 完了後のUIロック
@@ -380,7 +433,7 @@
         btn.style.display = "none";
         autoScroll('close-button');
       } else {
-        setMessage("エラー: " + res.message, "error");
+        setMessage(res.message, "error"); // 認証失敗時は「認証できません」を表示
         btn.disabled = false;
       }
     }
