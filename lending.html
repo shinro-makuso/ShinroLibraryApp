@@ -226,7 +226,9 @@
     </div>
 
     <button class="btn-green" id="submit-btn" onclick="submitLending()" disabled>貸出処理を実行</button>
-    
+    <!-- 【追加】認証コードスキャン用のカメラ画面をボタンの下に配置 -->
+    <div id="auth-scanner-container" class="scanner-box"></div>
+
     <div id="message"></div>
 
     <div class="footer-btns">
@@ -436,10 +438,11 @@
       if (isQuaggaRunning) stopBookScanner();
       if (videoStream) stopUserScanner();
 
-      const container = document.getElementById('book-scanner-container');
+      // 【変更】ボタンの下にある専用コンテナを指定
+      const container = document.getElementById('auth-scanner-container');
       container.style.display = 'block';
-      setMessage("認証コードをスキャンしてください", "");
-      autoScroll('book-scanner-container');
+      setMessage("【教職員認証】認証コード（Code128バーコード）をスキャンしてください", "");
+      autoScroll('auth-scanner-container');
 
       Quagga.init({
         inputStream: { 
@@ -449,7 +452,7 @@
           constraints: { facingMode: "environment" } 
         },
         decoder: { 
-          readers: ["code_128_reader"] // 認証コード用にCode128を指定
+          readers: ["code_128_reader"] 
         }
       }, (err) => {
         if (err) { alert(err); return; }
@@ -457,15 +460,22 @@
         isQuaggaRunning = true;
       });
 
-      // 検出時のイベントを設定
       Quagga.offDetected();
       Quagga.onDetected((data) => {
         const code = data.codeResult.code;
         if (code) {
-          stopBookScanner();
-          executeVerifiedLending(code); // 読み取ったコードで検証・貸出実行
+          stopAuthScanner(); // 【変更】認証用スキャナーを停止
+          executeVerifiedLending(code);
         }
       });
+    }
+
+    // 【追加】認証スキャナー専用の停止関数
+    function stopAuthScanner() {
+      if (!isQuaggaRunning) return;
+      Quagga.stop();
+      isQuaggaRunning = false;
+      document.getElementById('auth-scanner-container').style.display = 'none';
     }
 
     // 認証コードをサーバーに送り検証・貸出を実行する
