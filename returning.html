@@ -340,10 +340,12 @@
     function updateListUI() {
       const listDiv = document.getElementById('book-list');
       const section = document.getElementById('return-list-section');
+      
       if (returnQueue.length === 0) {
         section.style.display = 'none';
         return;
       }
+      
       section.style.display = 'block';
       listDiv.innerHTML = returnQueue.map((b, index) => `
         <div class="book-card">
@@ -352,16 +354,20 @@
           <div class="info-line">蔵書ID: ${b.bookId}</div>
           <div class="info-line">利用者: ${b.userName} さん</div>
           <div class="info-line">返却期限: ${b.dueDate}</div>
-          <button class="remove-btn" onclick="removeFromQueue(${index})">取消</button>
+          <button type="button" class="remove-btn" onclick="removeFromQueue(${index})">取消</button>
         </div>
       `).join('');
     }
 
     function removeFromQueue(index) {
-      returnQueue.splice(index, 1);
-      updateListUI();
+      // 範囲外のインデックスでなければ削除
+      if (index >= 0 && index < returnQueue.length) {
+        returnQueue.splice(index, 1);
+        updateListUI();
+        setMessage("リストから取り消しました", "success");
+      }
     }
-
+    
     let isAuthScanning = false;
 
     // 【変更】「返却処理を実行」を押したら認証スキャンを開始
@@ -376,7 +382,7 @@
 
       const container = document.getElementById('auth-scanner-container');
       container.style.display = 'block';
-      setMessage("【教職員認証】認証コード（Code128バーコード）をスキャンしてください", "");
+      setMessage("認証コードをスキャンしてください", "");
       autoScroll('auth-scanner-container');
 
       Quagga.init({
@@ -412,28 +418,36 @@
       });
     }
 
-    // 【追加】認証コードを判定して既存仕様の bookIds で返却実行
-    async function executeVerifiedReturn(authCode) {
+    async function submitReturn() {
+      if (returnQueue.length === 0) {
+        setMessage("返却リストが空です。", "error");
+        return;
+      }
+
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      setMessage("認証および返却処理を実行中...", "");
+      setMessage("返却処理を実行中...", "");
       
-      // 既存仕様通りの bookIds 配列
+      // ★ここに到達した時点で returnQueue に残っているものだけを厳密に抽出する
       const bookIds = returnQueue.map(b => b.bookId);
       
-      const res = await callGas('verifyAndProcessReturn', { authCode: authCode, bookIds: bookIds });
+      // ※もし認証機能（verifyAndProcessReturn）と併用している場合は、
+      // 以下の callGas のアクション名を適宜合わせてください
+      const res = await callGas('processBulkReturn', { bookIds: bookIds });
       
       if (res.success) {
         setMessage(res.message, "success");
         // 完了後のUIロック
         document.getElementById('return-list-section').style.opacity = "0.6";
-        document.getElementById('scan-btn').disabled = true;
-        document.getElementById('search-btn').disabled = true;
+        const scanBtn = document.getElementById('scan-btn');
+        const searchBtn = document.getElementById('search-btn');
+        if (scanBtn) scanBtn.disabled = true;
+        if (searchBtn) searchBtn.disabled = true;
         document.querySelectorAll('.remove-btn').forEach(x => x.disabled = true);
         btn.style.display = "none";
         autoScroll('close-button');
       } else {
-        setMessage(res.message, "error"); // 認証失敗時は「認証できません」を表示
+        setMessage("エラー: " + res.message, "error");
         btn.disabled = false;
       }
     }
